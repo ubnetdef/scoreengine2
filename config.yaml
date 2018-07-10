@@ -1,0 +1,104 @@
+---
+database:
+  url: &db "sqlite:///db.sqlite3"
+#  url: &db "mysql+pymysql://root:password@192.168.99.100:3306/scoreengine"
+#  url: &db "postgres://postgres:password@192.168.99.100:5432/scoreengine"
+#  pool_size: 40
+#  max_overflow: 60
+
+#bank:
+#  enabled: no
+#  server: localhost
+#  username: username
+#  password: password
+
+celery:
+  backend: *db
+#  broker: redis://192.168.99.100/0
+  broker: amqp://guest:guest@192.168.99.100:5672//
+  worker:
+    concurrency: 20
+#    loglevel: INFO
+    traceback: yes
+
+checks:
+  ftp:
+    directory: /home/ftpusers/bob/
+
+# time units are expressed in seconds
+round:
+  duration: 15
+  jitter: 5
+  # reaper
+
+# traffic generator
+
+teams:
+  minimum: 1
+  maximum: 11
+
+services:
+  - name: ICMP
+    check: icmp.check_icmp
+    data:
+      - key: IP
+        value: localhost
+        edit: no
+#  - name: Active Directory
+#    check: ldap.check_ldap_lookup
+#    data:
+#      - key: HOST
+#        value: 10.{team}.1.50
+#      - key: DOMAIN
+#        value: loribird{team}.win
+#        edit: no
+#      - key: USERPASS
+#        value: jgeistBird||Changeme123!
+#      - key: USERPASS
+#        value: jdrosteBird||Changeme123!
+  - name: Google ICMP
+    check: icmp.check_icmp
+    data:
+      - key: IP
+        value: 8.8.8.8
+      - key: IP
+        value: 8.8.4.4
+  - name: Google DNS
+    check: dns.check_dns
+    data:
+      - key: HOST
+        value: 8.8.8.8
+      - key: LOOKUP
+        value: ubnetdef.org
+      - key: TYPE
+        value: A
+      - key: EXPECTED
+        value: 128.205.44.157
+  - name: Google HTTP
+    check: http.check_http
+    data:
+      - key: HOST
+        value: google.com
+      - key: PORT
+        value: 80
+  - name: MariaDB
+    check: mysql.check_query_server
+    data:
+      - key: HOST
+        value: 192.168.99.100
+      - key: PORT
+        value: 3306
+      - key: USER
+        value: root
+      - key: PASS
+        value: password
+      - key: DB_LOOKUP
+        value: information_schema
+#  - name: FTP
+#    check: ftp.check_upload_download
+#    data:
+#      - key: HOST
+#        value: 192.168.99.100
+#      - key: USERPASS
+#        value: bob||password
+...

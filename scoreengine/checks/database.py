@@ -12,8 +12,8 @@ mysql_config = {
 # /DEFAULTS
 
 # CONFIG
-if 'mysql' in config['checks']:
-    mysql_config.update(config['checks']['mysql'])
+if 'database' in config['checks']:
+    mysql_config.update(config['checks']['database'])
 # /CONFIG
 
 

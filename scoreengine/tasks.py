@@ -8,9 +8,9 @@ from . import celery_app
 def check_task(data):
     try:
         check_function = _get_check_function(**data['check'])
-    except (AttributeError, ImportError):
+    except (AttributeError, ImportError) as e:
         # TODO: log this? ignore this?
-        print('There was en error getting the check function')
+        print('There was en error getting the check function:', e)
         raise
 
     check_function(CheckData(data))

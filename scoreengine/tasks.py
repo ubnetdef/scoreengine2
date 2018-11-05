@@ -1,7 +1,11 @@
 import importlib
+import logging
 from typing import Union
 
 from . import celery_app
+
+
+logger = logging.getLogger(__name__)
 
 
 @celery_app.task(soft_time_limit=30)
@@ -10,7 +14,7 @@ def check_task(data):
         check_function = _get_check_function(**data['check'])
     except (AttributeError, ImportError) as e:
         # TODO: log this? ignore this?
-        print('There was en error getting the check function:', e)
+        logger.error('There was en error getting the check function: %r', e)
         raise
 
     check_function(CheckData(data))

@@ -1,6 +1,7 @@
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+import logging
 import random
 import signal
 import sys
@@ -13,6 +14,8 @@ from . import config, models, tasks, utils
 
 
 SleepRange = namedtuple('SleepRange', ['minimum', 'maximum'])
+
+logger = logging.getLogger(__name__)
 
 
 class Master:
@@ -32,34 +35,32 @@ class Master:
     def shutdown(self, signal_number, frame):
         if self.no_more_rounds:
             # Already asked to stop
-            print('Cold shutdown')
+            logging.warning('Cold shutdown')
             sys.exit(1)
         else:
             # First request to stop
-            print('Warm shutdown')
+            logging.warning('Warm shutdown')
             self.no_more_rounds = True
 
     def run(self, use_task_queue):
         while not self.no_more_rounds:
-            print('Preparing to start round {} ...'.format(self.current_round))
+            logger.debug('Preparing to start round %d', self.current_round)
 
             round_thread = threading.Thread(
                 target=self.schedule_round_checks,
                 args=(self.current_round, use_task_queue))
             round_thread.start()
 
-            print('... round {} started.'.format(self.current_round))
-
             sleep_duration = random.randint(
                 self.sleep_range.minimum, self.sleep_range.maximum)
-            print('Sleeping for {} seconds until the next round.'.format(sleep_duration))
+            logger.debug('Sleeping for %d seconds until the next round', sleep_duration)
             time.sleep(sleep_duration)
 
             self.current_round += 1
 
     @staticmethod
     def schedule_round_checks(current_round, use_task_queue):
-        print('\tStarting round #{}'.format(current_round))
+        logger.info('Starting round %d', current_round)
 
         with utils.session_scope() as session:
             session.add(models.Round(current_round))
@@ -89,7 +90,17 @@ class Master:
                     future.result().get()
                     for future in futures
                 ]
-                print(results)
+                for result in results:
+                    # TODO: get team and service names instead of IDs
+                    logger.info(
+                        'Check %(status)s: round %(round)d, team ID %(team)d, service ID %(service)d',
+                        {
+                            'status': 'passed' if result['passed'] else 'failed',
+                            'round': result['round_number'],
+                            'team': result['team_id'],
+                            'service': result['service_id'],
+                        },
+                    )
 
         with utils.session_scope() as session:
             for result in results:
@@ -114,4 +125,4 @@ class Master:
 
             session.commit()
 
-        print('\tCompleted round #{}'.format(current_round))
+        logger.info('Completed round %d', current_round)

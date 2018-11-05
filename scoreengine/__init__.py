@@ -1,4 +1,4 @@
-# import logging
+import logging
 
 from celery import Celery
 from sqlalchemy import engine_from_config
@@ -25,10 +25,12 @@ celery_app = Celery(
 )
 
 
-# TODO: make this more configurable
-# logging.basicConfig(level=logging.DEBUG)
-#
-# logger = logging.getLogger(__name__)
+# TODO: move to config
+logging.basicConfig(
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+    level=logging.DEBUG,
+)
+logging.getLogger('celery.app.trace').setLevel(logging.WARNING)
 
 
 db_engine = engine_from_config(config['database'], prefix='',)

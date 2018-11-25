@@ -11,6 +11,7 @@ pyyaml = "*"
 dnspython = "*"
 pymysql = "*"
 python-ldap = "*"
+fake-useragent = "*"
 
 [dev-packages]
 

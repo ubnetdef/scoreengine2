@@ -22,7 +22,7 @@ def session_scope():
 
 
 def serialize_check(session, team: models.Team, service: models.Service,
-                   round_number: Optional[int]=None, dry_run: bool=False):
+                    round_number: Optional[int]=-1):
     team_service_data = (session
         .query(models.TeamService.key, models.TeamService.value)
         .filter_by(team=team)
@@ -50,10 +50,10 @@ def serialize_check(session, team: models.Team, service: models.Service,
             function_name=service.check,
         ),
         config=check_config,
-        official=not dry_run,
+        official=round_number > 0,
         output=[],
         passed=False,
-        round_number=round_number if round_number is not None else -1,
+        round_number=round_number,
         service_id=service.id,
         service_name=service.name,
         team_id=team.id,

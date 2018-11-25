@@ -43,12 +43,35 @@ class Master:
             self.no_more_rounds = True
 
     def run(self, use_task_queue):
+        traffic_generator = threading.Thread(
+            target=self.generate_traffic,
+            args=(use_task_queue,),
+        )
+        traffic_generator.start()
+
+        self.perform_scoring(use_task_queue)
+
+    def generate_traffic(self, use_task_queue):
+        while not self.no_more_rounds:
+            logger.debug('Starting traffic generation cycle')
+
+            round_thread = threading.Thread(
+                target=self.schedule_round_checks,
+                args=(-1, use_task_queue, config['trafficgen']['number']),
+            )
+            round_thread.start()
+
+            logger.debug('Traffic generation cycle complete')
+            time.sleep(config['trafficgen']['sleep'])
+
+    def perform_scoring(self, use_task_queue):
         while not self.no_more_rounds:
             logger.debug('Preparing to start round %d', self.current_round)
 
             round_thread = threading.Thread(
                 target=self.schedule_round_checks,
-                args=(self.current_round, use_task_queue))
+                args=(self.current_round, use_task_queue),
+            )
             round_thread.start()
 
             sleep_duration = random.randint(
@@ -59,12 +82,15 @@ class Master:
             self.current_round += 1
 
     @staticmethod
-    def schedule_round_checks(current_round, use_task_queue):
+    def schedule_round_checks(current_round, use_task_queue, max_checks=None):
+        is_official_round = current_round > 0
+
         logger.info('Starting round %d', current_round)
 
         with utils.session_scope() as session:
-            session.add(models.Round(current_round))
-            session.commit()
+            if is_official_round:
+                session.add(models.Round(current_round))
+                session.commit()
 
             services = session.query(models.Service).filter_by(enabled=True).all()
             teams = session.query(models.Team).filter_by(enabled=True).all()
@@ -75,6 +101,10 @@ class Master:
                 for team in teams
                 for service in services
             ]
+
+        random.shuffle(check_tasks)
+        if max_checks is not None:
+            check_tasks = check_tasks[:max_checks]
 
         if use_task_queue:
             round_group = celery.group(check_tasks)
@@ -102,27 +132,28 @@ class Master:
                         },
                     )
 
-        with utils.session_scope() as session:
-            for result in results:
-                if not result['official']:
-                    continue
-                session.add(
-                    models.Check(
-                        team_id=result['team_id'],
-                        service_id=result['service_id'],
-                        round=result['round_number'],
-                        passed=result['passed'],
-                        output='\n'.join(result['output']),
+        if is_official_round:
+            with utils.session_scope() as session:
+                for result in results:
+                    if not result['official']:
+                        continue
+                    session.add(
+                        models.Check(
+                            team_id=result['team_id'],
+                            service_id=result['service_id'],
+                            round=result['round_number'],
+                            passed=result['passed'],
+                            output='\n'.join(result['output']),
+                        )
                     )
+
+                round_obj = (session.query(models.Round)
+                    .filter_by(number=current_round)
+                    .first()
                 )
+                round_obj.completed = True
+                round_obj.finish = datetime.utcnow()
 
-            round_obj = (session.query(models.Round)
-                .filter_by(number=current_round)
-                .first()
-            )
-            round_obj.completed = True
-            round_obj.finish = datetime.utcnow()
-
-            session.commit()
+                session.commit()
 
         logger.info('Completed round %d', current_round)

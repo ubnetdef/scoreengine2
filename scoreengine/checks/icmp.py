@@ -22,7 +22,7 @@ def check_icmp(check):
         icmp_config['command'],
         '-c', '1',
         '-t', str(icmp_config['timeout']),
-        str(check.config['IP'])
+        str(check.config['HOST'])
     ]
 
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

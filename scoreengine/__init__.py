@@ -28,9 +28,8 @@ celery_app = Celery(
 # TODO: move to config
 logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
-    level=logging.DEBUG,
 )
-logging.getLogger('celery.app.trace').setLevel(logging.WARNING)
+logging.getLogger('scoreengine').setLevel(logging.DEBUG)
 
 
 db_engine = engine_from_config(config['database'], prefix='',)

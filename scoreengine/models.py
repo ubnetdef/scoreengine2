@@ -24,7 +24,7 @@ class Team(Base):
     __tablename__ = 'teams'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255), unique=True)
+    name = db.Column(db.String(191), unique=True)
     enabled = db.Column(db.Boolean, default=True)
     check_team = db.Column(db.Boolean, default=False)
 
@@ -38,9 +38,9 @@ class Service(Base):
     __tablename__ = 'services'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255), unique=True)
-    group = db.Column(db.String(255))
-    check = db.Column(db.String(255))
+    name = db.Column(db.String(191), unique=True)
+    group = db.Column(db.String(191))
+    check = db.Column(db.String(191))
     enabled = db.Column(db.Boolean, default=True)
 
     def __init__(self, name, group, check):
@@ -55,7 +55,7 @@ class TeamService(Base):
     id = db.Column(db.Integer, primary_key=True)
     team_id = db.Column(db.Integer, db.ForeignKey('teams.id'))
     service_id = db.Column(db.Integer, db.ForeignKey('services.id'))
-    key = db.Column(db.String(255))
+    key = db.Column(db.String(191))
     value = db.Column(db.Text)
     edit = db.Column(db.Boolean, default=True)
     hidden = db.Column(db.Boolean, default=False)

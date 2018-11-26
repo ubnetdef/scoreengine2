@@ -1,4 +1,4 @@
-# TODO: test check_wordpress and check_gitlab
+# TODO: test check_wordpress
 
 import re
 
@@ -74,17 +74,17 @@ def check_wordpress(check):
     req = session.get(login_url, timeout=http_config['timeout'], headers=http_headers)
 
     if req.status_code != 200:
-        check.addOutput('ERROR: Page returned status code {}'.format(req.status_code))
+        check.add_output('ERROR: Page returned status code {}', req.status_code)
         return
 
-    check.addOutput('Loaded!')
+    check.add_output('Loaded!')
 
     # Attempt to login
-    check.addOutput('Attempting to login')
+    check.add_output('Attempting to login')
     req = session.post(login_url, data=login_payload, timeout=http_config['timeout'], headers=http_headers)
 
     if req.status_code != 200:
-        check.addOutput('ERROR: Page returned status code {}'.format(req.status_code))
+        check.add_output('ERROR: Page returned status code {}', req.status_code)
         return
 
     # Check the cookies
@@ -94,14 +94,13 @@ def check_wordpress(check):
             has_login_cookie = True
 
     if not has_login_cookie:
-        check.addOutput('ERROR: Logged in cookie not set.')
+        check.add_output('ERROR: Logged in cookie not set.')
         return
 
-    check.addOutput('Logged in!')
+    check.add_output('Logged in!')
 
     # It passed all our check
-    check.setPassed()
-    check.addOutput('Check successful!')
+    return True
 
 
 @check_function('Ability to use the gitlab website')
@@ -113,17 +112,17 @@ def check_gitlab(check):
                       timeout=http_config['timeout'], headers=http_headers)
 
     if req.status_code != 200:
-        check.addOutput('ERROR: Page returned status code {}', req.status_code)
+        check.add_output('ERROR: Page returned status code {}', req.status_code)
         return False
 
-    check.addOutput('Connected!')
+    check.add_output('Connected!')
 
     # Load the login page
-    check.addOutput('Loading login page')
+    check.add_output('Loading login page')
     login_url = 'http://{HOST}:{PORT}/{login}'.format(
         login=http_config['gitlab_login'], **check.config)
     req = session.get(login_url, timeout=http_config['timeout'], headers=http_headers)
-    matches = re.search('name="authenticity_token" value="([^"]+)"', req.content)
+    matches = re.search('name="authenticity_token" value="([^"]+)"', req.content.decode())
 
     if not matches:
         check.add_output('ERROR: Login page did not contain needed information')

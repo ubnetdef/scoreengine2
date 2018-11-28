@@ -61,7 +61,7 @@ def check(args):
         for team in teams:
             for service in services:
                 tasks.check_task(
-                    utils.serialize_check(session, team, service, dry_run=True))
+                    utils.serialize_check(session, team, service))
 
 
 def _validate_check_args(args):

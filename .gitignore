@@ -2,6 +2,7 @@
 #################################################
 venv
 config.py
+config.ya?ml
 *.sqlite*
 
 # Worker Server #

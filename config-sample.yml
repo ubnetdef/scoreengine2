@@ -41,7 +41,7 @@ services:
   - name: ICMP
     check: icmp.check_icmp
     data:
-      - key: IP
+      - key: HOST
         value: localhost
         edit: no
 #  - name: Active Directory

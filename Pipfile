@@ -12,6 +12,7 @@ dnspython = "*"
 pymysql = "*"
 python-ldap = "*"
 fake-useragent = "*"
+paramiko = "*"
 
 [dev-packages]
 

@@ -5,40 +5,7 @@ import argparse
 from celery.bin.worker import worker
 from sqlalchemy.sql import func
 
-from scoreengine import celery_app, config, db_engine, models, master, tasks, utils
-
-
-def setup():
-    """Initialize the database with teams (including a check team) and services."""
-    with utils.session_scope() as session:
-        models.Base.metadata.drop_all(db_engine)
-        models.Base.metadata.create_all(db_engine)
-
-        teams = {}
-        assert config['teams']['minimum'] < config['teams']['maximum']
-        for i in range(config['teams']['minimum'], config['teams']['maximum'] + 1):
-            is_check_team = i == config['teams']['maximum']
-            teams[i] = models.Team('Team {}'.format(i), check_team=is_check_team)
-            session.add(teams[i])
-
-        for cfg in config['services']:
-            check_group, check_function = cfg['check'].split('.', 1)
-            service = models.Service(cfg['name'], check_group, check_function)
-            session.add(service)
-
-            session.add_all(
-                models.TeamService(
-                    team,
-                    service,
-                    datum['key'],
-                    str(datum['value']).format(team=team_num),
-                    datum.get('edit'),
-                    datum.get('hidden'),
-                    order,
-                )
-                for team_num, team in teams.items()
-                for order, datum in enumerate(cfg['data'])
-            )
+from scoreengine import celery_app, config, models, master, setup, tasks, utils
 
 
 def check(args):
@@ -73,17 +40,12 @@ def _validate_check_args(args):
                          'both of -cs/--check-service and -ct/--check-team)')
 
 
-def reset():
-    setup()
-    # db_engine.execute('TRUNCATE checks; TRUNCATE rounds; TRUNCATE celery_taskmeta;')
-
-
 def main(args):
     if args.reset:
-        reset()
+        setup.init_from_config()
 
     if args.setup:
-        setup()
+        setup.init_from_config()
     elif args.check:
         _validate_check_args(args)
         check(args)

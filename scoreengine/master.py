@@ -157,3 +157,30 @@ class Master:
                 session.commit()
 
         logger.info('Completed round %d', current_round)
+
+
+def perform_checks(service_ids, team_ids):
+    """Synchronously perform a one-time set of checks of service(s) for team(s)."""
+    from pprint import pprint
+
+    with utils.session_scope() as session:
+        services = (
+            session.query(models.Service)
+                .filter(models.Service.id.in_(service_ids))
+                .all()
+            if service_ids else
+            session.query(models.Service).all()
+        )
+
+        teams = (
+            session.query(models.Team)
+                .filter(models.Team.id.in_(team_ids))
+                .all()
+            if team_ids else
+            session.query(models.Team).all()
+        )
+
+        for team in teams:
+            for service in services:
+                result = tasks.check_task(utils.serialize_check(session, team, service))
+                pprint(result)

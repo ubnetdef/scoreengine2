@@ -8,29 +8,6 @@ from sqlalchemy.sql import func
 from scoreengine import celery_app, config, models, master, setup, tasks, utils
 
 
-def check(args):
-    """Perform a one-time set of checks of service(s) for team(s)"""
-    with utils.session_scope() as session:
-        services = (
-            session.query(models.Service).all()
-            if args.check_services is None else
-            session.query(models.Service)
-                .filter(models.Service.id.in_(args.check_services))
-                .all()
-        )
-        teams = (
-            session.query(models.Team).all()
-            if args.check_teams is None else
-            session.query(models.Team)
-                .filter(models.Team.id.in_(args.check_teams))
-                .all()
-        )
-        for team in teams:
-            for service in services:
-                result = tasks.check_task(utils.serialize_check(session, team, service))
-                print(result)
-
-
 def _validate_check_args(args):
         if args.check_all and any((args.check_services, args.check_teams)):
             parser.error('-ca/--check-all cannot be used with '
@@ -48,7 +25,7 @@ def main(args):
         setup.init_from_config()
     elif args.check:
         _validate_check_args(args)
-        check(args)
+        master.perform_checks(args.check_services, args.check_teams)
     elif args.stand_alone or args.master:
         start_round = 1
         if args.resume:

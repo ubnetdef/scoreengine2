@@ -18,7 +18,7 @@ SleepRange = namedtuple('SleepRange', ['minimum', 'maximum'])
 logger = logging.getLogger(__name__)
 
 
-class Master:
+class Runner:
 
     def __init__(self, start_round: int = 1):
         self.current_round = start_round

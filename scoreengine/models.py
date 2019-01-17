@@ -33,6 +33,11 @@ class Team(Base):
         if check_team is not None:
             self.check_team = check_team
 
+    def __repr__(self):
+        return (
+            'Team(id={id}, name={name!r}, enabled={enabled}, check_team={check_team})'
+        ).format_map(self.__dict__)
+
 
 class Service(Base):
     __tablename__ = 'services'
@@ -47,6 +52,11 @@ class Service(Base):
         self.name = name
         self.group = group
         self.check = check
+
+    def __repr__(self):
+        return (
+            'Service(id={id}, name={name!r}, group={group}, check={check}, enabled={enabled})'
+        ).format_map(self.__dict__)
 
 
 class TeamService(Base):

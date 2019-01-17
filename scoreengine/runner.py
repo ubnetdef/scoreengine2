@@ -56,7 +56,7 @@ class Runner:
             logger.debug('Starting traffic generation cycle')
 
             round_thread = threading.Thread(
-                target=self.schedule_round_checks,
+                target=schedule_round_checks,
                 args=(-1, use_task_queue, config['trafficgen']['number']),
             )
             round_thread.start()
@@ -69,7 +69,7 @@ class Runner:
             logger.debug('Preparing to start round %d', self.current_round)
 
             round_thread = threading.Thread(
-                target=self.schedule_round_checks,
+                target=schedule_round_checks,
                 args=(self.current_round, use_task_queue),
             )
             round_thread.start()
@@ -81,82 +81,82 @@ class Runner:
 
             self.current_round += 1
 
-    @staticmethod
-    def schedule_round_checks(current_round, use_task_queue, max_checks=None):
-        is_official_round = current_round > 0
 
-        logger.info('Starting round %d', current_round)
+def schedule_round_checks(current_round, use_task_queue, max_checks=None):
+    is_official_round = current_round > 0
 
-        with utils.session_scope() as session:
-            if is_official_round:
-                session.add(models.Round(current_round))
-                session.commit()
+    logger.info('Starting round %d', current_round)
 
-            services = session.query(models.Service).filter_by(enabled=True).all()
-            teams = session.query(models.Team).filter_by(enabled=True).all()
-            check_tasks = [
-                tasks.check_task.s(
-                    utils.serialize_check(session, team, service, current_round)
-                )
-                for team in teams
-                for service in services
-            ]
-
-        random.shuffle(check_tasks)
-        if max_checks is not None:
-            check_tasks = check_tasks[:max_checks]
-
-        if use_task_queue:
-            round_group = celery.group(check_tasks)
-            promise = round_group.apply_async()
-            results = promise.get()
-        else:
-            with ThreadPoolExecutor(max_workers=config['celery']['worker']['concurrency']) as executor:
-                futures = [
-                    executor.submit(check_task.apply)
-                    for check_task in check_tasks
-                ]
-                results = [
-                    future.result().get()
-                    for future in futures
-                ]
-                for result in results:
-                    # TODO: get team and service names instead of IDs
-                    logger.info(
-                        'Check %(status)s: round %(round)d, team ID %(team)d, service ID %(service)d',
-                        {
-                            'status': 'passed' if result['passed'] else 'failed',
-                            'round': result['round_number'],
-                            'team': result['team_id'],
-                            'service': result['service_id'],
-                        },
-                    )
-
+    with utils.session_scope() as session:
         if is_official_round:
-            with utils.session_scope() as session:
-                for result in results:
-                    if not result['official']:
-                        continue
-                    session.add(
-                        models.Check(
-                            team_id=result['team_id'],
-                            service_id=result['service_id'],
-                            round=result['round_number'],
-                            passed=result['passed'],
-                            output='\n'.join(result['output']),
-                        )
-                    )
+            session.add(models.Round(current_round))
+            session.commit()
 
-                round_obj = (session.query(models.Round)
-                    .filter_by(number=current_round)
-                    .first()
+        services = session.query(models.Service).filter_by(enabled=True).all()
+        teams = session.query(models.Team).filter_by(enabled=True).all()
+        check_tasks = [
+            tasks.check_task.s(
+                utils.serialize_check(session, team, service, current_round)
+            )
+            for team in teams
+            for service in services
+        ]
+
+    random.shuffle(check_tasks)
+    if max_checks is not None:
+        check_tasks = check_tasks[:max_checks]
+
+    if use_task_queue:
+        round_group = celery.group(check_tasks)
+        promise = round_group.apply_async()
+        results = promise.get()
+    else:
+        with ThreadPoolExecutor(max_workers=config['celery']['worker']['concurrency']) as executor:
+            futures = [
+                executor.submit(check_task.apply)
+                for check_task in check_tasks
+            ]
+            results = [
+                future.result().get()
+                for future in futures
+            ]
+            for result in results:
+                # TODO: get team and service names instead of IDs
+                logger.info(
+                    'Check %(status)s: round %(round)d, team ID %(team)d, service ID %(service)d',
+                    {
+                        'status': 'passed' if result['passed'] else 'failed',
+                        'round': result['round_number'],
+                        'team': result['team_id'],
+                        'service': result['service_id'],
+                    },
                 )
-                round_obj.completed = True
-                round_obj.finish = datetime.utcnow()
 
-                session.commit()
+    if is_official_round:
+        with utils.session_scope() as session:
+            for result in results:
+                if not result['official']:
+                    continue
+                session.add(
+                    models.Check(
+                        team_id=result['team_id'],
+                        service_id=result['service_id'],
+                        round=result['round_number'],
+                        passed=result['passed'],
+                        output='\n'.join(result['output']),
+                    )
+                )
 
-        logger.info('Completed round %d', current_round)
+            round_obj = (session.query(models.Round)
+                .filter_by(number=current_round)
+                .first()
+            )
+            round_obj.completed = True
+            round_obj.finish = datetime.utcnow()
+
+            session.commit()
+
+    logger.info('Completed round %d', current_round)
 
 
 def perform_checks(service_ids, team_ids):

@@ -1,3 +1,5 @@
+import logging
+
 import click
 from sqlalchemy.sql import func
 
@@ -21,29 +23,26 @@ def db():
 @db.command()
 def init():
     """Initialize the database."""
-    click.echo('Initializing database...')
+    logging.getLogger('scoreengine').setLevel(config['logging']['level'])
     utils.init_db_from_config()
-    click.echo('... database initialized!')
 
 
 @db.command()
 def list_services():
     """List configured services."""
-    click.echo('Services:')
     with utils.session_scope() as session:
         services = session.query(models.Service).all()
         for service in services:
-            click.echo('  {}'.format(service))
+            click.echo(service)
 
 
 @db.command()
 def list_teams():
     """List configured teams."""
-    click.echo('Teams:')
     with utils.session_scope() as session:
         teams = session.query(models.Team).all()
         for team in teams:
-            click.echo('  {}'.format(team))
+            click.echo(team)
 
 
 @cli.command()
@@ -57,6 +56,8 @@ def list_teams():
               help='Round number to start checks at.')
 def run(use_task_queue, reset, resume, start_round):
     """Perform scheduling of round checks for scoring."""
+    logging.getLogger('scoreengine').setLevel(config['logging']['level'])
+
     if reset:
         with utils.session_scope() as session:
             session.query(models.Round).delete()
@@ -64,8 +65,7 @@ def run(use_task_queue, reset, resume, start_round):
     if resume:
         with utils.session_scope() as session:
             max_round = session.query(func.max(models.Round.number)).first()[0]
-        print(max_round)
-        if isinstance(max_round, int):
+        if max_round is not None:
             start_round = max_round + 1
 
     runner.Runner(start_round).run(use_task_queue=use_task_queue)
@@ -79,12 +79,38 @@ def worker():
 
 
 @cli.command()
-@click.option('--service', '-s', 'services', multiple=True, help='ID of service to be checked.')
-@click.option('--team', '-t', 'teams', multiple=True, help='ID of team to be checked.')
+@click.option('--service', '-s', 'services', type=int, multiple=True,
+              help='ID of service to be checked.')
+@click.option('--team', '-t', 'teams', type=int, multiple=True,
+              help='ID of team to be checked.')
 def check(services, teams):
-    """Perform a one-time check as a dry-run."""
-    runner.perform_checks(services, teams)
-
-
-# if __name__ == '__main__':
-#     cli()
+    """Perform one-time checks as a dry-run (without the task queue)."""
+    results = runner.perform_round_checks(
+        current_round=None,
+        use_task_queue=False,
+        only_enabled=False,
+        service_ids=services,
+        team_ids=teams,
+    )
+    for result in results:
+        passed = result['passed']
+        click.secho(
+            '{result}:\t{team:15} | {service:20} | {check}'.format(
+                check='{}.{}'.format(
+                    result['check']['file_name'],
+                    result['check']['function_name']
+                ),
+                result='Pass' if passed else 'Fail',
+                service='[#{}] {}'.format(
+                    result['service_id'],
+                    result['service_name'],
+                ),
+                team='[#{}] {}'.format(
+                    result['team_id'],
+                    result['team_name'],
+                ),
+            ),
+            fg='green' if passed else 'red'
+        )
+        if not passed:
+            click.echo('\n'.join(result['output']))

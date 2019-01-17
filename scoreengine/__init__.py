@@ -25,11 +25,7 @@ celery_app = Celery(
 )
 
 
-# TODO: move to config
-logging.basicConfig(
-    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
-)
-logging.getLogger('scoreengine').setLevel(logging.DEBUG)
+logging.basicConfig(format=config['logging']['format'])
 
 
 db_engine = engine_from_config(config['database'], prefix='',)

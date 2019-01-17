@@ -7,6 +7,7 @@ import signal
 import sys
 import threading
 import time
+import typing
 
 import celery
 
@@ -56,8 +57,8 @@ class Runner:
             logger.debug('Starting traffic generation cycle')
 
             round_thread = threading.Thread(
-                target=schedule_round_checks,
-                args=(-1, use_task_queue, config['trafficgen']['number']),
+                target=perform_round_checks,
+                args=(None, use_task_queue, config['trafficgen']['number']),
             )
             round_thread.start()
 
@@ -69,7 +70,7 @@ class Runner:
             logger.debug('Preparing to start round %d', self.current_round)
 
             round_thread = threading.Thread(
-                target=schedule_round_checks,
+                target=perform_round_checks,
                 args=(self.current_round, use_task_queue),
             )
             round_thread.start()
@@ -82,18 +83,53 @@ class Runner:
             self.current_round += 1
 
 
-def schedule_round_checks(current_round, use_task_queue, max_checks=None):
-    is_official_round = current_round > 0
+def _get_check_services(session, service_ids, only_enabled=True):
+    query = session.query(models.Service)
+    if service_ids:
+        query = query.filter(models.Service.id.in_(service_ids))
+    if only_enabled:
+        query = query.filter_by(enabled=True)
+    return query.all()
 
-    logger.info('Starting round %d', current_round)
+
+def _get_check_teams(session, team_ids, only_enabled=True):
+    query = session.query(models.Team)
+    if team_ids:
+        query = query.filter(models.Team.id.in_(team_ids))
+    if only_enabled:
+        query = query.filter_by(enabled=True)
+    return query.all()
+
+
+def perform_round_checks(
+    current_round: typing.Optional[int],
+    use_task_queue: bool,
+    max_checks: typing.Optional[int] = None,
+    only_enabled: bool = True,
+    service_ids: typing.Optional[typing.Tuple] = None,
+    team_ids: typing.Optional[typing.Tuple] = None,
+):
+    """Schedule checks for the specified round.
+
+    :param current_round: Round number being checked.
+    :param use_task_queue: Whether we should use Celery.
+    :param max_checks: Maximum number of checks to be performed (if specified).
+    :param only_enabled: Only consider enabled services and enabled teams.
+    :param service_ids: If specified, limit checks to only the specified services.
+    :param team_ids: If specified, limit checks to only the specified teams.
+    :return: The result of the performed checks.
+    """
+    is_official_round = current_round is not None
+
+    logger.info('Starting round %s', current_round if is_official_round else '\b')
 
     with utils.session_scope() as session:
         if is_official_round:
             session.add(models.Round(current_round))
             session.commit()
 
-        services = session.query(models.Service).filter_by(enabled=True).all()
-        teams = session.query(models.Team).filter_by(enabled=True).all()
+        services = _get_check_services(session, service_ids, only_enabled=only_enabled)
+        teams = _get_check_teams(session, team_ids, only_enabled=only_enabled)
         check_tasks = [
             tasks.check_task.s(
                 utils.serialize_check(session, team, service, current_round)
@@ -120,17 +156,18 @@ def schedule_round_checks(current_round, use_task_queue, max_checks=None):
                 future.result().get()
                 for future in futures
             ]
-            for result in results:
-                # TODO: get team and service names instead of IDs
-                logger.info(
-                    'Check %(status)s: round %(round)d, team ID %(team)d, service ID %(service)d',
-                    {
-                        'status': 'passed' if result['passed'] else 'failed',
-                        'round': result['round_number'],
-                        'team': result['team_id'],
-                        'service': result['service_id'],
-                    },
-                )
+
+    for result in results:
+        # TODO: get team and service names instead of IDs
+        logger.debug(
+            'Check %(status)s: round %(round)s, team ID %(team)d, service ID %(service)d',
+            {
+                'status': 'passed' if result['passed'] else 'failed',
+                'round': result['round_number'],
+                'team': result['team_id'],
+                'service': result['service_id'],
+            },
+        )
 
     if is_official_round:
         with utils.session_scope() as session:
@@ -156,31 +193,6 @@ def schedule_round_checks(current_round, use_task_queue, max_checks=None):
 
             session.commit()
 
-    logger.info('Completed round %d', current_round)
+    logger.info('Completed round %s', current_round if is_official_round else '\b')
 
-
-def perform_checks(service_ids, team_ids):
-    """Synchronously perform a one-time set of checks of service(s) for team(s)."""
-    from pprint import pprint
-
-    with utils.session_scope() as session:
-        services = (
-            session.query(models.Service)
-                .filter(models.Service.id.in_(service_ids))
-                .all()
-            if service_ids else
-            session.query(models.Service).all()
-        )
-
-        teams = (
-            session.query(models.Team)
-                .filter(models.Team.id.in_(team_ids))
-                .all()
-            if team_ids else
-            session.query(models.Team).all()
-        )
-
-        for team in teams:
-            for service in services:
-                result = tasks.check_task(utils.serialize_check(session, team, service))
-                pprint(result)
+    return results

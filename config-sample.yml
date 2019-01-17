@@ -21,6 +21,10 @@ celery:
 #    loglevel: INFO
     traceback: yes
 
+logging:
+  format: '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+  level: INFO
+
 checks:
   ftp:
     directory: /home/ftpusers/bob/
@@ -59,9 +63,9 @@ services:
   - name: Google ICMP
     check: icmp.check_icmp
     data:
-      - key: IP
+      - key: HOST
         value: 8.8.8.8
-      - key: IP
+      - key: HOST
         value: 8.8.4.4
   - name: Google DNS
     check: dns.check_dns

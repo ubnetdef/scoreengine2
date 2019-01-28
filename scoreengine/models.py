@@ -55,7 +55,7 @@ class Service(Base):
 
     def __repr__(self):
         return (
-            'Service(id={id}, name={name!r}, group={group}, check={check}, enabled={enabled})'
+            'Service(id={id}, name={name!r}, group={group!r}, check={check!r}, enabled={enabled})'
         ).format_map(self.__dict__)
 
 

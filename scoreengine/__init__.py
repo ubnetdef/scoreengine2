@@ -28,5 +28,5 @@ celery_app = Celery(
 logging.basicConfig(format=config['logging']['format'])
 
 
-db_engine = engine_from_config(config['database'], prefix='',)
+db_engine = engine_from_config(config['database'], prefix='')
 Session = sessionmaker(bind=db_engine)

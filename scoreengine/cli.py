@@ -1,5 +1,6 @@
 import logging
 
+from celery.bin.worker import worker as celery_worker
 import click
 from sqlalchemy.sql import func
 
@@ -75,7 +76,7 @@ def run(use_task_queue, reset, resume, start_round):
 def worker():
     """Process checks on the Celery task queue."""
     celery_app.autodiscover_tasks(['scoreengine.tasks'])
-    worker(app=celery_app).run(**config['celery']['worker'])
+    celery_worker(app=celery_app).run(**config['celery']['worker'])
 
 
 @cli.command()

@@ -101,7 +101,7 @@ def init_db_from_config():
                     service,
                     datum['key'],
                     str(datum['value']).format(team=team_num),
-                    datum.get('edit'),
+                    datum.get('editable'),
                     datum.get('hidden'),
                     order,
                 )

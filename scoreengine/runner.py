@@ -10,6 +10,7 @@ import time
 import typing
 
 import celery
+import requests
 
 from . import config, models, tasks, utils
 
@@ -192,6 +193,18 @@ def perform_round_checks(
             round_obj.finish = datetime.utcnow()
 
             session.commit()
+
+        if config['bank']['enabled']:
+            for result in results:
+                if result['passed']:
+                    requests.post(
+                        'http://{}/internalGiveMoney'.format(config['bank']['server']),
+                        data={
+                            'username': config['bank']['username'],
+                            'password': config['bank']['password'],
+                            'team': result['team_id'],
+                        },
+                    )
 
     logger.info('Completed round %s', current_round if is_official_round else '\b')
 

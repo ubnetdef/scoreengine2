@@ -8,7 +8,7 @@ import yaml
 
 def _load_config_from_yaml(file_name: str='config.yml'):
     with open(file_name) as file:
-        return yaml.load(file)
+        return yaml.full_load(file)
 
 
 config = _load_config_from_yaml()

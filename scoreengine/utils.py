@@ -81,9 +81,15 @@ def init_db_from_config():
         teams = {}
         assert config['teams']['minimum'] < config['teams']['maximum']
 
+        check_teams = config['teams']['check_teams']
         for team in range(config['teams']['minimum'], config['teams']['maximum'] + 1):
-            is_check_team = team == config['teams']['maximum']
-            logger.debug('Creating team %s%s', team, ' (check team)' if is_check_team else '')
+            is_check_team = team in check_teams
+
+            logger.debug(
+                'Creating team %s%s',
+                team,
+                ' (check team)' if is_check_team else '',
+            )
 
             teams[team] = models.Team('Team {}'.format(team), check_team=is_check_team)
             session.add(teams[team])

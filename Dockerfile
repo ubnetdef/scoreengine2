@@ -4,13 +4,20 @@ ENV PYTHONUNBUFFERED=1
 RUN mkdir /opt/scoreengine2
 WORKDIR /opt/scoreengine2
 
-RUN apt-get update && apt-get install -y libsasl2-dev libldap2-dev libssl-dev
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libldap2-dev \
+        libsasl2-dev \
+        libssl-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir --trusted-host pypi.python.org pipenv
-COPY Pipfile .
-COPY Pipfile.lock .
-RUN pipenv sync
+COPY setup.py .
+
+RUN pip install --no-cache-dir --trusted-host pypi.python.org --editable .
 
 COPY . .
 
-ENTRYPOINT ["pipenv", "run", "python", "scoreenginecli.py"]
+USER nobody
+
+ENTRYPOINT ["scoreengine2"]

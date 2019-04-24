@@ -14,6 +14,7 @@ setup(
         'paramiko',
         'pymysql',
         'python-ldap',
+        'pywinrm',
         'pyyaml',
         'requests',
         'sqlalchemy',

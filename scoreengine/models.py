@@ -67,7 +67,7 @@ class TeamService(Base):
     service_id = db.Column(db.Integer, db.ForeignKey('services.id'))
     key = db.Column(db.String(191))
     value = db.Column(db.Text)
-    edit = db.Column(db.Boolean, default=True)
+    edit = db.Column(db.Boolean, default=False)
     hidden = db.Column(db.Boolean, default=False)
     order = db.Column(db.Integer, default=0)
 

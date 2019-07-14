@@ -6,6 +6,7 @@ WORKDIR /opt/scoreengine2
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+        iputils-ping \
         libldap2-dev \
         libsasl2-dev \
         libssl-dev \

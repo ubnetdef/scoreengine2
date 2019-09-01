@@ -6,11 +6,11 @@ database:
 #  pool_size: 40
 #  max_overflow: 60
 
-#bank:
-#  enabled: no
-#  server: localhost
-#  username: username
-#  password: password
+bank:
+  enabled: no
+  url: https://bank.example.com/internalGiveMoney
+  username: username
+  password: password
 
 celery:
   backend: *db
@@ -50,18 +50,18 @@ services:
       - key: HOST
         value: localhost
         editable: no
-#  - name: Active Directory
-#    check: ldap.check_ldap_lookup
-#    data:
-#      - key: HOST
-#        value: 10.{team}.1.50
-#      - key: DOMAIN
-#        value: loribird{team}.win
-#        edit: no
-#      - key: USERPASS
-#        value: jgeistBird||Changeme123!
-#      - key: USERPASS
-#        value: jdrosteBird||Changeme123!
+  - name: Active Directory
+    check: ldap.check_ldap_lookup
+    data:
+      - key: HOST
+        value: 10.{team}.1.50
+      - key: DOMAIN
+        value: loribird{team}.win
+        edit: no
+      - key: USERPASS
+        value: jgeistBird||Changeme123!
+      - key: USERPASS
+        value: jdrosteBird||Changeme123!
   - name: Google ICMP
     check: icmp.check_icmp
     data:
@@ -100,11 +100,11 @@ services:
         value: password
       - key: DB_LOOKUP
         value: information_schema
-#  - name: FTP
-#    check: ftp.check_upload_download
-#    data:
-#      - key: HOST
-#        value: 192.168.99.100
-#      - key: USERPASS
-#        value: bob||password
+  - name: FTP
+    check: ftp.check_upload_download
+    data:
+      - key: HOST
+        value: 192.168.99.100
+      - key: USERPASS
+        value: bob||password
 ...

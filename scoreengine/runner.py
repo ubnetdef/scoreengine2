@@ -198,7 +198,7 @@ def perform_round_checks(
             for result in results:
                 if result['passed']:
                     requests.post(
-                        'http://{}/internalGiveMoney'.format(config['bank']['server']),
+                        config['bank']['url'],
                         data={
                             'username': config['bank']['username'],
                             'password': config['bank']['password'],

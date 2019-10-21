@@ -1,4 +1,4 @@
-FROM python:3.7
+FROM python:3.7-slim
 ENV PYTHONUNBUFFERED=1
 
 RUN mkdir /opt/scoreengine2
@@ -6,6 +6,7 @@ WORKDIR /opt/scoreengine2
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+        gcc \
         iputils-ping \
         libldap2-dev \
         libsasl2-dev \

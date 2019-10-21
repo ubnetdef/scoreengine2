@@ -63,11 +63,16 @@ def check_connect_ledger(check):
         check.add_output('Checking content of ledger file')
         stdin, stdout, stderr = client.exec_command('cat /home/scoredCrypto/ledger.cryp')
         file_output = next(stdout).rstrip()  # strip trailing new line
-        if abs(int(time.time()) - int(file_output)) > 150:
+        output_int = int(file_output)
+        expected_output = int(time.time())
+        actual_time_output = ((output_int & 0x0000FFFF)<<16)+((output_int & 0xFFFF0000)>>16)
+        
+        
+        if abs(expected_output - actual_time_output) > 180:
             check.add_output(
                 'ERROR: unexpected result (expected {!r}, got {!r}).',
-                "time within 150 seconds of: {}".format(str(int(time.time()))),
-                file_output,
+                "time within 180 seconds of: {}".format(expected_output),
+                str(actual_time_output),
             )
             return False
         check.add_output('... command ran successfully!')

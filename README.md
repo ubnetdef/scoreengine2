@@ -7,10 +7,10 @@ This is the software used to perform scoring for UBNetDef's
 ## Installation
 
 Score Engine 2 can be "installed" in 3 ways:
-1. Pulling the `ubnetdef/scoreengine2` Docker image (requires [Docker Engine](https://docs.docker.com/install/))
-   `docker pull ubnetdef/scoreengine2`
+1. Pulling the `docker.pkg.github.com/ubnetdef/scoreengine2/scoreengine2` Docker image (requires [Docker Engine](https://docs.docker.com/install/))
+   `docker pull docker.pkg.github.com/ubnetdef/scoreengine2/scoreengine2`
 2. Building from the `Dockerfile` in the repository (requires [Docker Engine](https://docs.docker.com/install/))
-   - `docker build -t ubnetdef/scoreengine2 .`
+   - `docker build -t scoreengine2 .`
 3. Installing the repository as a Python package
    - Clone the repository and change into that directory
    - Optionally activate a virtual environment
